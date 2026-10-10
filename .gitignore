@@ -1,38 +1,29 @@
-# Python cache
+# ---- Raw datasets (large, public downloads; see README for links) ----
+Machine_learning/A123_BAT/
+Machine_learning/Nasa/
+
+# ---- Python ----
 __pycache__/
 *.py[cod]
-*.pyo
-
-# Virtual environments
-venv/
 .venv/
+venv/
 env/
-
-# Environment variables and secrets
-.env
-.env.*
-!.env.example
-
-# Frontend dependencies
-node_modules/
-
-# Build outputs
-dist/
-build/
-
-# Testing and coverage
 .pytest_cache/
-.coverage
-htmlcov/
 
-# IDE and OS files
+# ---- Editor and OS ----
 .vscode/
+.idea/
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Machine learning generated files
-*.pkl
-*.joblib
-*.h5
-*.pt
-*.pth
+# ---- Secrets and local config ----
+.env
+.env.*
+
+# ---- Node (frontend) ----
+node_modules/
+dist/
+build/
+.next/
+npm-debug.log*
