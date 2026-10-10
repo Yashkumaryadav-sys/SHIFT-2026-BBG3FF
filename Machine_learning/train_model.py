@@ -1,8 +1,3 @@
-"""Final training script.
-Age model  : XGBoost, state of health (SoH) as a function of life used, trained on the NASA classic cells.
-Temp curve : smoothed usable-energy factor from the CALCE A123 runs.
-Usage: python train_model.py [nasa_discharge_all.csv] [calce_runs.csv] [models_folder]
-"""
 import json
 import re
 import sys

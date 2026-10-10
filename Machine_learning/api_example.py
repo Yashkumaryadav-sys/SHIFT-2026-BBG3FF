@@ -1,6 +1,3 @@
-"""Example RangeTrue API (reference for the backend). Run from the folder that holds range_core.py and models/:
-   python -m uvicorn api_example:app --reload --port 8000
-The backend developer can copy range_core.py into Backend and reuse these endpoints."""
 from typing import List, Optional, Literal
 import numpy as np
 from fastapi import FastAPI, HTTPException
