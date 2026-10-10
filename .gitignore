@@ -1,6 +1,9 @@
 # ---- Raw datasets (large, public downloads; see README for links) ----
 Machine_learning/A123_BAT/
 Machine_learning/Nasa/
+Machine_learning/datasets/mcmaster_tesla/raw/
+Machine_learning/datasets/mcmaster_tesla/processed/
+Machine_learning/datasets/mcmaster_tesla/*.zip
 
 # ---- Python ----
 __pycache__/
@@ -8,6 +11,9 @@ __pycache__/
 .venv/
 venv/
 env/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
 .pytest_cache/
 
 # ---- Editor and OS ----
