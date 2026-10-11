@@ -1,4 +1,4 @@
-# RangeTrue frontend
+# Real Range frontend
 
 React + Vite dashboard for the FastAPI backend in `../Backend`.
 

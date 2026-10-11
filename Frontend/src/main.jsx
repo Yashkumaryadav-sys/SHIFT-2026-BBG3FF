@@ -1,27 +1,23 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Activity from 'lucide-react/dist/esm/icons/activity.js';
 import ArrowDownRight from 'lucide-react/dist/esm/icons/arrow-down-right.js';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right.js';
 import Battery from 'lucide-react/dist/esm/icons/battery.js';
 import Bike from 'lucide-react/dist/esm/icons/bike.js';
-import Check from 'lucide-react/dist/esm/icons/check.js';
-import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down.js';
 import CircleHelp from 'lucide-react/dist/esm/icons/circle-help.js';
 import Clock3 from 'lucide-react/dist/esm/icons/clock-3.js';
 import Compass from 'lucide-react/dist/esm/icons/compass.js';
 import Gauge from 'lucide-react/dist/esm/icons/gauge.js';
 import Leaf from 'lucide-react/dist/esm/icons/leaf.js';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin.js';
-import Menu from 'lucide-react/dist/esm/icons/menu.js';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js';
 import Route from 'lucide-react/dist/esm/icons/route.js';
-import Settings2 from 'lucide-react/dist/esm/icons/settings-2.js';
 import ShieldCheck from 'lucide-react/dist/esm/icons/shield-check.js';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles.js';
 import TriangleAlert from 'lucide-react/dist/esm/icons/triangle-alert.js';
 import Zap from 'lucide-react/dist/esm/icons/zap.js';
-import { api, getApiSettings, saveApiSettings, usesServerSideProxy } from './api';
+import { api } from './api';
 import './styles.css';
 
 const PROFILE = 'xiaomi_pro2_public';
@@ -32,6 +28,9 @@ const INITIAL_ROUTE = {
 };
 const DEMO_ROUTES = [
   { id: 'bhu', label: 'IIT (BHU) · mostly flat', start: 'IIT (BHU), Varanasi', end: 'Varanasi city', route: { start_lat: 25.2620, start_lon: 82.9890, end_lat: 25.3307, end_lon: 82.9873, route: 'flat', trip_km: 8 } },
+  { id: 'gnit-kamarhatty', label: 'GNIT → Kamarhatty Company', start: 'Guru Nanak Institute of Technology, Panihati', end: 'Kamarhatty Company Ltd., Graham Road', route: { start_lat: 22.69527, start_lon: 88.379032, end_lat: 22.6810, end_lon: 88.3715, route: 'flat', trip_km: 3.5 } },
+  { id: 'salkia-howrah', label: 'Salkia → Howrah Station', start: 'Salkia, Howrah', end: 'Howrah Railway Station', route: { start_lat: 22.6012849, start_lon: 88.3312686, end_lat: 22.5829, end_lon: 88.3428, route: 'flat', trip_km: 4 } },
+  { id: 'sealdah-new-market', label: 'Sealdah → Esplanade (New Market)', start: 'Sealdah Station, Kolkata', end: 'Esplanade / New Market, Kolkata', route: { start_lat: 22.56777, start_lon: 88.37229, end_lat: 22.5604749, end_lon: 88.3529659, route: 'flat', trip_km: 3.5 } },
   { id: 'hills', label: 'Shimla → Dharamshala · hilly', start: 'Shimla, Himachal Pradesh', end: 'Dharamshala, Himachal Pradesh', route: { start_lat: 31.1048, start_lon: 77.1734, end_lat: 32.2190, end_lon: 76.3234, route: 'hill', trip_km: 240 } },
   { id: 'mussoorie-rishikesh', label: 'Mussoorie → Rishikesh · downhill', start: 'Mussoorie, Uttarakhand', end: 'Rishikesh, Uttarakhand', route: { start_lat: 30.4569, start_lon: 78.0783, end_lat: 30.1165, end_lon: 78.2311, route: 'hill', trip_km: 75 } },
   { id: 'srinagar-gulmarg', label: 'Srinagar → Gulmarg · mountain', start: 'Srinagar, Jammu & Kashmir', end: 'Gulmarg, Jammu & Kashmir', route: { start_lat: 34.0857, start_lon: 74.8056, end_lat: 34.0536, end_lon: 74.3819, route: 'hill', trip_km: 55 } },
@@ -45,9 +44,6 @@ function Field({ label, value, onChange, type = 'number', step, min, max, suffix
 
 function App() {
   const [page, setPage] = useState('overview');
-  const [settings, setSettings] = useState(getApiSettings());
-  const [health, setHealth] = useState(null);
-  const [profiles, setProfiles] = useState([]);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -77,15 +73,6 @@ function App() {
     }
     finally { setBusy(false); }
   };
-  const checkBackend = async () => {
-    const data = await call(() => api('/health'));
-    if (data) setHealth(data.status);
-  };
-  useEffect(() => {
-    checkBackend();
-    call(async () => { const data = await api('/vehicle-profiles'); setProfiles(data.profiles || []); return data; });
-  }, []);
-
   const runRoute = async e => {
     e?.preventDefault();
     setResult(null);
@@ -108,13 +95,10 @@ function App() {
     delete body.start_lat; delete body.start_lon; delete body.end_lat; delete body.end_lon;
     const data = await call(() => api('/re-estimate', { method: 'POST', body })); if (data) setReEstimateResult(data);
   };
-  const saveSettings = e => { e.preventDefault(); saveApiSettings(settings.baseUrl, settings.apiKey); setError(''); checkBackend(); };
-
   const nav = [
     { id: 'overview', label: 'Range overview', icon: Gauge, group: 'YOUR VEHICLE' },
     { id: 'battery', label: 'Battery status', icon: Battery },
     { id: 'reestimate', label: 'Trip re-estimate', icon: RefreshCw, group: 'TOOLS' },
-    { id: 'settings', label: 'API connection', icon: Settings2 },
   ];
   const elevation = result?.profile?.elevation_m || [];
   const stepKm = Number(result?.profile?.step_km) || Number(result?.route_km) / Math.max(1, elevation.length - 1);
@@ -127,21 +111,20 @@ function App() {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark"><Activity size={19} strokeWidth={2.6} /></div><span>range<span className="brand-light">true</span></span><span className="brand-tag">BETA</span></div>
-      <div className="vehicle-switch"><div className="vehicle-icon"><Bike size={18} /></div><div><strong>{result?.vehicle_profile?.name?.split(' (')[0] || 'Xiaomi scooter profile'}</strong><small>Public data demo</small></div><ChevronDown size={15} /></div>
+      <div className="brand"><div className="brand-mark"><Activity size={19} strokeWidth={2.6} /></div><span>Real <span className="brand-light">Range</span></span><span className="brand-tag">BETA</span></div>
+      <div className="vehicle-switch"><div className="vehicle-icon"><Bike size={18} /></div><div><strong>{result?.vehicle_profile?.name?.split(' (')[0] || 'Xiaomi scooter profile'}</strong><small>Public data demo</small></div></div>
       <div className="nav-label">{nav[0].group}</div>
       <nav>{nav.map((item, i) => <React.Fragment key={item.id}>{item.group && i > 0 && <div className="nav-label nav-label-spaced">{item.group}</div>}<button className={`nav-item ${page === item.id ? 'active' : ''}`} onClick={() => { setPage(item.id); setError(''); }}><item.icon size={17} /><span>{item.label}</span>{item.id === 'overview' && result && <i />}</button></React.Fragment>)}</nav>
-      <div className="sidebar-bottom"><div className={`connection-card ${health === 'ok' ? 'connected' : ''}`}><span className="pulse"/><div><strong>{health === 'ok' ? 'Backend connected' : health === 'degraded' ? 'Model degraded' : 'Checking backend'}</strong><small>{settings.baseUrl}</small></div></div><div className="sidebar-note"><ShieldCheck size={15} /><span>Estimates are guidance, not a guarantee.</span></div></div>
+      <div className="sidebar-bottom"><div className="sidebar-note"><ShieldCheck size={15} /><span>Estimates are guidance, not a guarantee.</span></div></div>
     </aside>
 
     <main className="main-area">
-      <header className="topbar"><button className="mobile-menu" aria-label="Open menu"><Menu size={20}/></button><div className="breadcrumbs">RangeTrue <span>/</span> {nav.find(x => x.id === page)?.label}</div><div className="top-actions"><span className={`api-pill ${health === 'ok' ? 'online' : ''}`}><i/>{health === 'ok' ? 'API online' : health ? 'API unavailable' : 'Connecting'}</span><button className="icon-button" onClick={checkBackend} aria-label="Refresh API status"><RefreshCw size={16}/></button><div className="avatar">RT</div></div></header>
+      <header className="topbar"><div className="breadcrumbs">Real Range <span>/</span> {nav.find(x => x.id === page)?.label}</div></header>
       <div className="content">
-        {error && <div className="error-banner"><TriangleAlert size={18}/><div><strong>Request didn’t complete</strong><span>{error}</span>{error.includes('401') && <small>Production proxy ki server-side API key Render wali key se match honi chahiye. Vercel Environment Variables check karo.</small>}</div><button onClick={() => setError('')}>×</button></div>}
-        {health === 'ok' && !error && <div className="api-key-notice"><ShieldCheck size={17}/><span><strong>Backend connected.</strong> Requests are routed through the app’s server-side connection.</span></div>}
+        {error && <div className="error-toast" role="alert"><TriangleAlert size={18}/><div><strong>Request didn’t complete</strong><span>{error}</span></div><button aria-label="Dismiss error" onClick={() => setError('')}>×</button></div>}
 
         {page === 'overview' && <>
-          <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> RANGE INTELLIGENCE</div><h1>Your range, <em>recalculated.</em></h1><p>Know what’s left in the battery—and what the road ahead will take.</p></div><button className="outline-button" onClick={() => setPage('settings')}><Settings2 size={16}/> API settings</button></section>
+          <section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> RANGE INTELLIGENCE</div><h1>Your range, <em>recalculated.</em></h1><p>Know what’s left in the battery—and what the road ahead will take.</p></div></section>
           <div className="demo-note"><Sparkles size={16}/><span>Using the <strong>public scooter data proxy</strong> for this estimate. Treat the result as a general estimate.</span></div>
           <div className="dashboard-grid">
             <section className="panel planner-panel"><div className="panel-heading"><div><div className="panel-kicker">PLAN A ROUTE</div><h2>Where are you headed?</h2></div><div className="route-icon"><Route size={18}/></div></div>
@@ -150,6 +133,7 @@ function App() {
                 <div className="route-divider"><span>ROUTE</span><button type="button" onClick={() => { if (coordMode === 'map') setCoordMode('manual'); else { selectDemoRoute(DEMO_ROUTES[0]); setCoordMode('map'); } }}>{coordMode === 'map' ? 'Edit coordinates' : 'Use BHU demo route'}</button></div>
                 <div className="demo-route-options" aria-label="Demo routes">{DEMO_ROUTES.map(preset => <button key={preset.id} type="button" className={demoRoute === preset.id ? 'selected' : ''} onClick={() => selectDemoRoute(preset)}>{preset.label}</button>)}</div>
                 <div className="route-fields"><div className="route-point"><div className="pin start"><MapPin size={16}/></div><div className="route-location"><label>STARTING POINT</label><strong>{coordMode === 'map' ? 'BHU, Varanasi' : (DEMO_ROUTES.find(preset => preset.id === demoRoute)?.start || 'Custom start coordinates')}</strong></div>{coordMode === 'manual' && <div className="coord-fields"><input aria-label="Start latitude" value={route.start_lat} onChange={e=>setRouteValue('start_lat',e.target.value)}/><input aria-label="Start longitude" value={route.start_lon} onChange={e=>setRouteValue('start_lon',e.target.value)}/></div>}</div><div className="route-track"/><div className="route-point"><div className="pin end"><MapPin size={16}/></div><div className="route-location"><label>DESTINATION</label><strong>{coordMode === 'map' ? 'Varanasi, Uttar Pradesh' : (DEMO_ROUTES.find(preset => preset.id === demoRoute)?.end || 'Custom destination coordinates')}</strong></div>{coordMode === 'manual' && <div className="coord-fields"><input aria-label="End latitude" value={route.end_lat} onChange={e=>setRouteValue('end_lat',e.target.value)}/><input aria-label="End longitude" value={route.end_lon} onChange={e=>setRouteValue('end_lon',e.target.value)}/></div>}</div></div>
+                <RouteMap startLat={route.start_lat} startLon={route.start_lon} endLat={route.end_lat} endLon={route.end_lon} />
                 <div className="field-row lower-fields"><Field label="Trip distance (fallback)" value={route.trip_km} onChange={v=>setRouteValue('trip_km',v)} min="0.5" step="0.1" suffix="km" hint="Used for quick estimate; route distance wins."/><label className="field"><span>Road profile</span><select value={route.route} onChange={e=>setRouteValue('route',e.target.value)}><option value="flat">Mostly flat</option><option value="rolling">Rolling</option><option value="hill">Hilly</option></select></label><Field label="Safety reserve" value={route.safety_margin} onChange={v=>setRouteValue('safety_margin',v)} min="0.05" max="0.3" step="0.025" suffix="fraction" hint="0.175 = 17.5% reserve"/></div>
                 <div className="field-row load-fields"><Field label="Rider weight" value={route.rider_kg} onChange={v=>setRouteValue('rider_kg',v)} min="20" max="200" suffix="kg"/><Field label="Vehicle + cargo" value={route.vehicle_kg} onChange={v=>setRouteValue('vehicle_kg',v)} min="5" max="400" suffix="kg"/><div className="form-hint"><CircleHelp size={14}/> Range uses the public scooter data proxy.</div></div>
                 <div className="planner-footer"><span><ShieldCheck size={15}/> Road route: OpenStreetMap · Elevation: Open-Meteo / Copernicus</span><div className="planner-buttons"><button className="primary-button" disabled={busy}>{busy ? <><span className="spinner"/> Calculating</> : <>Calculate route range <ArrowRight size={16}/></>}</button></div></div>
@@ -168,9 +152,7 @@ function App() {
 
         {page === 'reestimate' && <><PageTitle eyebrow="ON THE ROAD" title="Re-estimate your trip" subtitle="Compare actual energy used so far with the route prediction and get a revised trip estimate."/><div className="tool-layout"><section className="panel tool-panel"><PanelTitle icon={RefreshCw} title="Update trip progress" description="This endpoint uses your selected vehicle profile and baseline with actual distance and energy used."/><form onSubmit={submitReEstimate}><div className="field-row"><FormField name="trip_km" label="Planned trip distance" initial={route.trip_km} suffix="km" min="0.5" required/><FormField name="km_done" label="Distance completed" initial="2" suffix="km" min="0" required/><FormField name="wh_used" label="Energy used so far" initial="45" suffix="Wh" min="0" required/></div><div className="form-hint"><CircleHelp size={15}/> Route planner inputs (SOC, profile, temperature) are reused from Range overview.</div><button className="primary-button" disabled={busy}>{busy?'Re-estimating…':<>Re-estimate range <ArrowRight size={16}/></>}</button></form></section><section className="panel result-panel"><div className="panel-kicker">REVISED ESTIMATE</div>{reEstimateResult ? <><div className="result-highlight"><Gauge size={18}/><strong>{fmt(reEstimateResult.real_range_km)} km</strong><span>real range</span></div><ResultRows data={reEstimateResult} omit={['profile','model','vehicle_profile','range_sensitivity_km']}/></> : <ResultPlaceholder text="Your revised estimate will show here after the calculation."/>}</section></div></>}
 
-        {page === 'settings' && <><PageTitle eyebrow="CONFIGURATION" title="API connection" subtitle="Production requests use a secure server-side connection. Local development uses your local FastAPI service."/><div className="tool-layout settings-layout"><section className="panel tool-panel"><PanelTitle icon={Settings2} title="Backend address" description={usesServerSideProxy ? 'This deployed site automatically routes through its secure Vercel proxy.' : 'Local development defaults to http://localhost:8000.'}/><form onSubmit={saveSettings}><label className="field"><span>API base URL</span><input type="text" value={settings.baseUrl} onChange={e=>setSettings({...settings,baseUrl:e.target.value})} placeholder="/api" required readOnly={usesServerSideProxy}/></label><label className="field"><span>API key <small className="optional">(local development only)</small></span><input type="password" autoComplete="off" value={settings.apiKey} onChange={e=>setSettings({...settings,apiKey:e.target.value})} placeholder={usesServerSideProxy ? 'Configured securely on the server' : 'X-API-Key'} disabled={usesServerSideProxy}/><em>{usesServerSideProxy ? 'The deployed site keeps its backend key on the server. No key is needed on this device.' : 'For local development only. Never enter a production key in a public browser app.'}</em></label><div className="settings-actions">{!usesServerSideProxy && <button className="primary-button">Save and connect <ArrowRight size={16}/></button>}<button className="outline-button" type="button" onClick={checkBackend}><RefreshCw size={15}/> Check connection</button></div></form></section><section className="panel info-panel"><div className="panel-kicker">CONNECTION STATUS</div><div className={`status-large ${health==='ok'?'good':''}`}><span className="pulse"/>{health === 'ok' ? 'Connected' : health === 'degraded' ? 'Connected, model unavailable' : 'Not connected'}</div><div className="status-url">{settings.baseUrl}</div><div className="info-divider"/><div className="endpoint-list"><strong>Endpoints used by this UI</strong>{['GET /health','GET /vehicle-profiles','POST /route-range','POST /predict-range','POST /battery/status','POST /calibrate-baseline','POST /rides/calibrate','GET /vehicles/{id}/calibration','POST /re-estimate'].map(x=><span key={x}><Check size={13}/>{x}</span>)}</div></section></div><div className="security-callout"><ShieldCheck size={18}/><div><strong>Production key safety</strong><span>The backend key stays in Vercel server-side environment variables and is never sent to visitors’ browsers. Add basic rate limiting before opening the public API widely.</span></div></div></>}
-
-        <footer className="footer"><span>RANGETRUE <b>•</b> EV RANGE ESTIMATES</span><span><ShieldCheck size={13}/> Estimates are informational; actual range varies.</span></footer>
+        <footer className="footer"><span>REAL RANGE <b>•</b> EV RANGE ESTIMATES</span><span><ShieldCheck size={13}/> Estimates are informational; actual range varies.</span></footer>
       </div>
     </main>
   </div>;
@@ -183,5 +165,49 @@ function FormField({name,label,initial,type='number',suffix,min,max,step,require
 function PanelTitle({icon:Icon,title,description}) { return <div className="tool-title"><div className="tool-icon"><Icon size={18}/></div><div><h2>{title}</h2><p>{description}</p></div></div>; }
 function ResultRows({data,omit=[]}) { return <div className="result-rows">{Object.entries(data).filter(([k,v])=>!omit.includes(k)&&v!==null&&typeof v!=='object').map(([k,v])=><div key={k}><span>{k.replaceAll('_',' ')}</span><strong>{String(v)}</strong></div>)}</div>; }
 function ResultPlaceholder({text}) { return <div className="result-placeholder"><div><Activity size={21}/></div><p>{text}</p></div>; }
+
+function RouteMap({ startLat, startLon, endLat, endLon }) {
+  const map = useMemo(() => {
+    const width = 720, height = 230, safeNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+    const points = [[safeNumber(startLat), safeNumber(startLon)], [safeNumber(endLat), safeNumber(endLon)]];
+    const mercator = ([lat, lon], zoom) => {
+      const scale = 256 * 2 ** zoom;
+      const clippedLat = Math.max(-85.0511, Math.min(85.0511, lat));
+      const rad = clippedLat * Math.PI / 180;
+      return { x: (lon + 180) / 360 * scale, y: (1 - Math.asinh(Math.tan(rad)) / Math.PI) / 2 * scale };
+    };
+    let zoom = 16;
+    for (; zoom > 2; zoom--) {
+      const projected = points.map(point => mercator(point, zoom));
+      if (Math.abs(projected[0].x - projected[1].x) < width - 120 && Math.abs(projected[0].y - projected[1].y) < height - 100) break;
+    }
+    const projected = points.map(point => mercator(point, zoom));
+    const center = { x: (projected[0].x + projected[1].x) / 2, y: (projected[0].y + projected[1].y) / 2 };
+    const originX = Math.floor((center.x - width / 2) / 256) * 256;
+    const originY = Math.floor((center.y - height / 2) / 256) * 256;
+    const tiles = [];
+    for (let x = Math.floor((center.x - width / 2) / 256); x <= Math.floor((center.x + width / 2) / 256); x++) {
+      for (let y = Math.floor((center.y - height / 2) / 256); y <= Math.floor((center.y + height / 2) / 256); y++) {
+        const n = 2 ** zoom;
+        if (y >= 0 && y < n) tiles.push({ key: `${zoom}-${x}-${y}`, url: `https://tile.openstreetmap.org/${zoom}/${((x % n) + n) % n}/${y}.png`, x: x * 256 - originX, y: y * 256 - originY });
+      }
+    }
+    const toLocal = point => ({ x: point.x - originX, y: point.y - originY });
+    return { tiles, start: toLocal(projected[0]), end: toLocal(projected[1]), width, height };
+  }, [startLat, startLon, endLat, endLon]);
+  const startLabelOnLeft = map.start.x > map.width - 125;
+  const endLabelOnLeft = map.end.x > map.width - 125;
+  return <section className="route-map-panel" aria-label="Map of selected route points">
+    <div className="route-map-heading"><strong>Route map</strong><span>Selected coordinates</span></div>
+    <svg className="route-map" viewBox={`0 0 ${map.width} ${map.height}`} role="img" aria-label="Map showing start and destination connected by a straight line">
+      <rect width={map.width} height={map.height} fill="#e8eef2" />
+      {map.tiles.map(tile => <image key={tile.key} href={tile.url} x={tile.x} y={tile.y} width="256" height="256" />)}
+      <line x1={map.start.x} y1={map.start.y} x2={map.end.x} y2={map.end.y} stroke="#1684e8" strokeWidth="5" strokeLinecap="round" opacity=".88" />
+      <circle cx={map.start.x} cy={map.start.y} r="10" fill="#fff"/><circle cx={map.start.x} cy={map.start.y} r="7" fill="#1684e8"/><text x={map.start.x + (startLabelOnLeft ? -13 : 13)} y={map.start.y - 10} textAnchor={startLabelOnLeft ? 'end' : 'start'}>A · Start</text>
+      <circle cx={map.end.x} cy={map.end.y} r="10" fill="#fff"/><circle cx={map.end.x} cy={map.end.y} r="7" fill="#e7834c"/><text x={map.end.x + (endLabelOnLeft ? -13 : 13)} y={map.end.y - 10} textAnchor={endLabelOnLeft ? 'end' : 'start'}>B · Destination</text>
+    </svg>
+    <div className="route-map-footer"><span>{fmt(startLat, 4)}, {fmt(startLon, 4)} → {fmt(endLat, 4)}, {fmt(endLon, 4)}</span><span>Straight line between points · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></span></div>
+  </section>;
+}
 
 createRoot(document.getElementById('root')).render(<App/>);
