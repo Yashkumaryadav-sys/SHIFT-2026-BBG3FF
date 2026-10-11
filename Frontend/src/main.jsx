@@ -5,6 +5,7 @@ import ArrowDownRight from 'lucide-react/dist/esm/icons/arrow-down-right.js';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right.js';
 import Battery from 'lucide-react/dist/esm/icons/battery.js';
 import Bike from 'lucide-react/dist/esm/icons/bike.js';
+import Check from 'lucide-react/dist/esm/icons/check.js';
 import CircleHelp from 'lucide-react/dist/esm/icons/circle-help.js';
 import Clock3 from 'lucide-react/dist/esm/icons/clock-3.js';
 import Compass from 'lucide-react/dist/esm/icons/compass.js';
