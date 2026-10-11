@@ -9,7 +9,8 @@ import xgboost as xgb
 NASA_CSV = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("nasa_discharge_all.csv")
 CALCE_RUNS = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("calce_runs.csv")
 OUT = Path(sys.argv[3]) if len(sys.argv) > 3 else Path("models")
-EOL_SOH = 0.80            # end of life = 80% of original capacity (industry convention)
+EOL_SOH = 0.80          
+   # end of life = 80% of original capacity (industry convention)
 REF_TEMP = 25.0
 OUT.mkdir(parents=True, exist_ok=True)
 
