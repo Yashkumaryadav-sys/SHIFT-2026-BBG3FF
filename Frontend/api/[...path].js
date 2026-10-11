@@ -15,14 +15,34 @@ function isAllowed(path, method) {
   return method === 'GET' && /^vehicles\/[A-Za-z0-9._~-]+\/calibration$/.test(path);
 }
 
+function getBackendPath(req) {
+  const routeParam = req.query?.path;
+  let parts = (Array.isArray(routeParam) ? routeParam : String(routeParam || '').split('/'))
+    .filter(Boolean);
+  if (parts[0] === 'api') parts = parts.slice(1);
+  if (parts.length && !parts.includes('[...path]')) return parts.map(decodeURIComponent).join('/');
+
+  // Some Vercel routing modes don't expose catch-all segments in req.query.
+  // In that case, derive the endpoint from the request path itself.
+  const pathname = new URL(req.url, 'https://vercel.local').pathname;
+  parts = pathname.split('/').filter(Boolean);
+  const apiIndex = parts.indexOf('api');
+  if (apiIndex >= 0) parts = parts.slice(apiIndex + 1);
+  return parts.map(decodeURIComponent).join('/');
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'GET, HEAD, POST, OPTIONS');
     return res.status(204).end();
   }
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
-  const backendPath = pathParts.join('/');
+  let backendPath;
+  try {
+    backendPath = getBackendPath(req);
+  } catch {
+    return res.status(400).json({ detail: 'Malformed API path' });
+  }
   if (!isAllowed(backendPath, req.method)) {
     return res.status(404).json({ detail: 'API route not found' });
   }
