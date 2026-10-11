@@ -55,11 +55,13 @@ function App() {
     if (['start_lat', 'start_lon', 'end_lat', 'end_lon'].includes(key)) setDemoRoute('custom');
   };
   const selectDemoRoute = preset => {
-    setRoute(prev => ({ ...prev, ...preset.route }));
+    const selectedRoute = { ...route, ...preset.route };
+    setRoute(selectedRoute);
     setDemoRoute(preset.id);
     setCoordMode('manual');
     setResult(null);
     setError('');
+    runRoute(null, selectedRoute);
   };
   const call = async task => {
     setBusy(true); setError('');
@@ -70,10 +72,10 @@ function App() {
     }
     finally { setBusy(false); }
   };
-  const runRoute = async e => {
+  const runRoute = async (e, routeInput = route) => {
     e?.preventDefault();
     setResult(null);
-    const payload = { ...route, trip_km: Number(route.trip_km), soc_percent: Number(route.soc_percent), cycles_used: Number(route.cycles_used), cycles_to_80pct: Number(route.cycles_to_80pct), temp_c: Number(route.temp_c), safety_margin: Number(route.safety_margin), rider_kg: Number(route.rider_kg), vehicle_kg: Number(route.vehicle_kg), start_lat: Number(route.start_lat), start_lon: Number(route.start_lon), end_lat: Number(route.end_lat), end_lon: Number(route.end_lon) };
+    const payload = { ...routeInput, trip_km: Number(routeInput.trip_km), soc_percent: Number(routeInput.soc_percent), cycles_used: Number(routeInput.cycles_used), cycles_to_80pct: Number(routeInput.cycles_to_80pct), temp_c: Number(routeInput.temp_c), safety_margin: Number(routeInput.safety_margin), rider_kg: Number(routeInput.rider_kg), vehicle_kg: Number(routeInput.vehicle_kg), start_lat: Number(routeInput.start_lat), start_lon: Number(routeInput.start_lon), end_lat: Number(routeInput.end_lat), end_lon: Number(routeInput.end_lon) };
     const data = await call(() => api('/route-range', { method: 'POST', body: payload }));
     if (data) {
       setResult(data);
