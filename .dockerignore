@@ -1,0 +1,13 @@
+.git
+.venv
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/.env.*
+Backend/rangetrue.sqlite3*
+Frontend
+Machine_learning/datasets
+Machine_learning/*.csv
+Machine_learning/*.py
+Machine_learning/HANDOVER.md
