@@ -1,5 +1,13 @@
-const storedBase = () => sessionStorage.getItem('rangetrue_api_url') || 'http://localhost:8000';
-const storedKey = () => sessionStorage.getItem('rangetrue_api_key') || '';
+const isLocalFrontend = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+export const usesServerSideProxy = !isLocalFrontend;
+const defaultBase = isLocalFrontend ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000') : '/api';
+
+const storedBase = () => {
+  if (usesServerSideProxy) return defaultBase;
+  const savedBase = sessionStorage.getItem('rangetrue_api_url');
+  return savedBase || defaultBase;
+};
+const storedKey = () => isLocalFrontend ? (sessionStorage.getItem('rangetrue_api_key') || '') : '';
 
 export async function api(path, { method = 'GET', body, baseUrl = storedBase(), apiKey = storedKey() } = {}) {
   const headers = { Accept: 'application/json' };
@@ -25,6 +33,11 @@ export async function api(path, { method = 'GET', body, baseUrl = storedBase(), 
 
 export const getApiSettings = () => ({ baseUrl: storedBase(), apiKey: storedKey() });
 export function saveApiSettings(baseUrl, apiKey) {
+  if (usesServerSideProxy) {
+    sessionStorage.removeItem('rangetrue_api_url');
+    sessionStorage.removeItem('rangetrue_api_key');
+    return;
+  }
   sessionStorage.setItem('rangetrue_api_url', baseUrl.trim().replace(/\/$/, ''));
   if (apiKey) sessionStorage.setItem('rangetrue_api_key', apiKey);
   else sessionStorage.removeItem('rangetrue_api_key');
