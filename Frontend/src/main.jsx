@@ -58,11 +58,13 @@ function App() {
     if (['start_lat', 'start_lon', 'end_lat', 'end_lon'].includes(key)) setDemoRoute('custom');
   };
   const selectDemoRoute = preset => {
-    setRoute(prev => ({ ...prev, ...preset.route }));
+    const selectedRoute = { ...route, ...preset.route };
+    setRoute(selectedRoute);
     setDemoRoute(preset.id);
     setCoordMode('manual');
     setResult(null);
     setError('');
+    runRoute(null, selectedRoute);
   };
   const call = async task => {
     setBusy(true); setError('');
@@ -73,10 +75,10 @@ function App() {
     }
     finally { setBusy(false); }
   };
-  const runRoute = async e => {
+  const runRoute = async (e, routeInput = route) => {
     e?.preventDefault();
     setResult(null);
-    const payload = { ...route, trip_km: Number(route.trip_km), soc_percent: Number(route.soc_percent), cycles_used: Number(route.cycles_used), cycles_to_80pct: Number(route.cycles_to_80pct), temp_c: Number(route.temp_c), safety_margin: Number(route.safety_margin), rider_kg: Number(route.rider_kg), vehicle_kg: Number(route.vehicle_kg), start_lat: Number(route.start_lat), start_lon: Number(route.start_lon), end_lat: Number(route.end_lat), end_lon: Number(route.end_lon) };
+    const payload = { ...routeInput, trip_km: Number(routeInput.trip_km), soc_percent: Number(routeInput.soc_percent), cycles_used: Number(routeInput.cycles_used), cycles_to_80pct: Number(routeInput.cycles_to_80pct), temp_c: Number(routeInput.temp_c), safety_margin: Number(routeInput.safety_margin), rider_kg: Number(routeInput.rider_kg), vehicle_kg: Number(routeInput.vehicle_kg), start_lat: Number(routeInput.start_lat), start_lon: Number(routeInput.start_lon), end_lat: Number(routeInput.end_lat), end_lon: Number(routeInput.end_lon) };
     const data = await call(() => api('/route-range', { method: 'POST', body: payload }));
     if (data) {
       setResult(data);
@@ -131,7 +133,7 @@ function App() {
               <form onSubmit={runRoute}>
                 <div className="field-row"><Field label="Battery charge" value={route.soc_percent} onChange={v=>setRouteValue('soc_percent',v)} min="0" max="100" suffix="%" required/><Field label="Battery temperature" value={route.temp_c} onChange={v=>setRouteValue('temp_c',v)} min="-30" max="60" suffix="°C" required/><Field label="Cycle count" value={route.cycles_used} onChange={v=>setRouteValue('cycles_used',v)} min="0" suffix="cycles"/></div>
                 <div className="route-divider"><span>ROUTE</span><button type="button" onClick={() => { if (coordMode === 'map') setCoordMode('manual'); else { selectDemoRoute(DEMO_ROUTES[0]); setCoordMode('map'); } }}>{coordMode === 'map' ? 'Edit coordinates' : 'Use BHU demo route'}</button></div>
-                <div className="demo-route-options" aria-label="Demo routes">{DEMO_ROUTES.map(preset => <button key={preset.id} type="button" className={demoRoute === preset.id ? 'selected' : ''} onClick={() => selectDemoRoute(preset)}>{preset.label}</button>)}</div>
+                <div className="demo-route-options" aria-label="Demo routes">{DEMO_ROUTES.map(preset => <button key={preset.id} type="button" disabled={busy} className={demoRoute === preset.id ? 'selected' : ''} onClick={() => selectDemoRoute(preset)}>{preset.label}</button>)}</div>
                 <div className="route-fields"><div className="route-point"><div className="pin start"><MapPin size={16}/></div><div className="route-location"><label>STARTING POINT</label><strong>{coordMode === 'map' ? 'BHU, Varanasi' : (DEMO_ROUTES.find(preset => preset.id === demoRoute)?.start || 'Custom start coordinates')}</strong></div>{coordMode === 'manual' && <div className="coord-fields"><input aria-label="Start latitude" value={route.start_lat} onChange={e=>setRouteValue('start_lat',e.target.value)}/><input aria-label="Start longitude" value={route.start_lon} onChange={e=>setRouteValue('start_lon',e.target.value)}/></div>}</div><div className="route-track"/><div className="route-point"><div className="pin end"><MapPin size={16}/></div><div className="route-location"><label>DESTINATION</label><strong>{coordMode === 'map' ? 'Varanasi, Uttar Pradesh' : (DEMO_ROUTES.find(preset => preset.id === demoRoute)?.end || 'Custom destination coordinates')}</strong></div>{coordMode === 'manual' && <div className="coord-fields"><input aria-label="End latitude" value={route.end_lat} onChange={e=>setRouteValue('end_lat',e.target.value)}/><input aria-label="End longitude" value={route.end_lon} onChange={e=>setRouteValue('end_lon',e.target.value)}/></div>}</div></div>
                 <RouteMap startLat={route.start_lat} startLon={route.start_lon} endLat={route.end_lat} endLon={route.end_lon} />
                 <div className="field-row lower-fields"><Field label="Trip distance (fallback)" value={route.trip_km} onChange={v=>setRouteValue('trip_km',v)} min="0.5" step="0.1" suffix="km" hint="Used for quick estimate; route distance wins."/><label className="field"><span>Road profile</span><select value={route.route} onChange={e=>setRouteValue('route',e.target.value)}><option value="flat">Mostly flat</option><option value="rolling">Rolling</option><option value="hill">Hilly</option></select></label><Field label="Safety reserve" value={route.safety_margin} onChange={v=>setRouteValue('safety_margin',v)} min="0.05" max="0.3" step="0.025" suffix="fraction" hint="0.175 = 17.5% reserve"/></div>
