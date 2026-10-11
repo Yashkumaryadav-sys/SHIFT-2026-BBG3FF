@@ -28,9 +28,6 @@ const INITIAL_ROUTE = {
 };
 const DEMO_ROUTES = [
   { id: 'bhu', label: 'IIT (BHU) · mostly flat', start: 'IIT (BHU), Varanasi', end: 'Varanasi city', route: { start_lat: 25.2620, start_lon: 82.9890, end_lat: 25.3307, end_lon: 82.9873, route: 'flat', trip_km: 8 } },
-  { id: 'gnit-kamarhatty', label: 'GNIT → Kamarhatty Company', start: 'Guru Nanak Institute of Technology, Panihati', end: 'Kamarhatty Company Ltd., Graham Road', route: { start_lat: 22.69527, start_lon: 88.379032, end_lat: 22.6810, end_lon: 88.3715, route: 'flat', trip_km: 3.5 } },
-  { id: 'salkia-howrah', label: 'Salkia → Howrah Station', start: 'Salkia, Howrah', end: 'Howrah Railway Station', route: { start_lat: 22.6012849, start_lon: 88.3312686, end_lat: 22.5829, end_lon: 88.3428, route: 'flat', trip_km: 4 } },
-  { id: 'sealdah-new-market', label: 'Sealdah → Esplanade (New Market)', start: 'Sealdah Station, Kolkata', end: 'Esplanade / New Market, Kolkata', route: { start_lat: 22.56777, start_lon: 88.37229, end_lat: 22.5604749, end_lon: 88.3529659, route: 'flat', trip_km: 3.5 } },
   { id: 'hills', label: 'Shimla → Dharamshala · hilly', start: 'Shimla, Himachal Pradesh', end: 'Dharamshala, Himachal Pradesh', route: { start_lat: 31.1048, start_lon: 77.1734, end_lat: 32.2190, end_lon: 76.3234, route: 'hill', trip_km: 240 } },
   { id: 'mussoorie-rishikesh', label: 'Mussoorie → Rishikesh · downhill', start: 'Mussoorie, Uttarakhand', end: 'Rishikesh, Uttarakhand', route: { start_lat: 30.4569, start_lon: 78.0783, end_lat: 30.1165, end_lon: 78.2311, route: 'hill', trip_km: 75 } },
   { id: 'srinagar-gulmarg', label: 'Srinagar → Gulmarg · mountain', start: 'Srinagar, Jammu & Kashmir', end: 'Gulmarg, Jammu & Kashmir', route: { start_lat: 34.0857, start_lon: 74.8056, end_lat: 34.0536, end_lon: 74.3819, route: 'hill', trip_km: 55 } },
@@ -58,13 +55,11 @@ function App() {
     if (['start_lat', 'start_lon', 'end_lat', 'end_lon'].includes(key)) setDemoRoute('custom');
   };
   const selectDemoRoute = preset => {
-    const selectedRoute = { ...route, ...preset.route };
-    setRoute(selectedRoute);
+    setRoute(prev => ({ ...prev, ...preset.route }));
     setDemoRoute(preset.id);
     setCoordMode('manual');
     setResult(null);
     setError('');
-    runRoute(null, selectedRoute);
   };
   const call = async task => {
     setBusy(true); setError('');
@@ -75,10 +70,10 @@ function App() {
     }
     finally { setBusy(false); }
   };
-  const runRoute = async (e, routeInput = route) => {
+  const runRoute = async e => {
     e?.preventDefault();
     setResult(null);
-    const payload = { ...routeInput, trip_km: Number(routeInput.trip_km), soc_percent: Number(routeInput.soc_percent), cycles_used: Number(routeInput.cycles_used), cycles_to_80pct: Number(routeInput.cycles_to_80pct), temp_c: Number(routeInput.temp_c), safety_margin: Number(routeInput.safety_margin), rider_kg: Number(routeInput.rider_kg), vehicle_kg: Number(routeInput.vehicle_kg), start_lat: Number(routeInput.start_lat), start_lon: Number(routeInput.start_lon), end_lat: Number(routeInput.end_lat), end_lon: Number(routeInput.end_lon) };
+    const payload = { ...route, trip_km: Number(route.trip_km), soc_percent: Number(route.soc_percent), cycles_used: Number(route.cycles_used), cycles_to_80pct: Number(route.cycles_to_80pct), temp_c: Number(route.temp_c), safety_margin: Number(route.safety_margin), rider_kg: Number(route.rider_kg), vehicle_kg: Number(route.vehicle_kg), start_lat: Number(route.start_lat), start_lon: Number(route.start_lon), end_lat: Number(route.end_lat), end_lon: Number(route.end_lon) };
     const data = await call(() => api('/route-range', { method: 'POST', body: payload }));
     if (data) {
       setResult(data);
