@@ -29,7 +29,8 @@ from vehicle_profiles import get_vehicle_profile, list_vehicle_profiles
 
 APP_VERSION = "1.0.0"
 OSRM_URL = os.getenv("OSRM_URL", "https://router.project-osrm.org")
-ELEVATION_URL = os.getenv("OPEN_ELEVATION_URL", "https://api.open-elevation.com/api/v1/lookup")
+ELEVATION_URL = os.getenv("OPEN_METEO_ELEVATION_URL", "https://api.open-meteo.com/v1/elevation")
+ELEVATION_FALLBACK_URL = os.getenv("OPENTOPO_ELEVATION_URL", "https://api.opentopodata.org/v1/srtm90m")
 HTTP_TIMEOUT = float(os.getenv("UPSTREAM_TIMEOUT_SECONDS", "20"))
 UPSTREAM_RETRIES = max(0, int(os.getenv("UPSTREAM_RETRIES", "2")))
 ROUTE_CACHE_TTL_SECONDS = max(0, int(os.getenv("ROUTE_CACHE_TTL_SECONDS", "900")))
@@ -222,7 +223,7 @@ class RouteRangeRequest(RangeRequest):
     start_lon: float = Field(..., ge=-180, le=180)
     end_lat: float = Field(..., ge=-90, le=90)
     end_lon: float = Field(..., ge=-180, le=180)
-    # The detailed elevation profile comes from Open-Elevation, so no sample route is used.
+    # The detailed elevation profile comes from Open-Meteo, so no sample route is used.
     route: Literal["flat", "rolling", "hill"] = "flat"
 
 
@@ -513,7 +514,27 @@ async def _fetch_route(start_lon: float, start_lat: float, end_lon: float, end_l
     return result
 
 
-async def _fetch_elevations(coordinates: list[list[float]], distance_m: float) -> list[float]:
+async def _fetch_opentopo_elevations(client: httpx.AsyncClient, selected: list[list[float]]) -> list[float]:
+    """Fetch SRTM90m heights in public API batches (100 locations max per call)."""
+    elevations: list[float] = []
+    for start in range(0, len(selected), ELEVATION_BATCH_SIZE):
+        if start:
+            # OpenTopoData's public instance is intended for low-volume use.
+            await asyncio.sleep(1)
+        batch = selected[start:start + ELEVATION_BATCH_SIZE]
+        locations = "|".join(f"{lat:.6f},{lon:.6f}" for lon, lat in batch)
+        response = await _upstream_request(
+            client, "POST", ELEVATION_FALLBACK_URL,
+            json={"locations": locations},
+        )
+        results = response.json().get("results", [])
+        if len(results) != len(batch) or any(item.get("elevation") is None for item in results):
+            raise HTTPException(502, "Fallback elevation service returned incomplete data")
+        elevations.extend(float(item["elevation"]) for item in results)
+    return elevations
+
+
+async def _fetch_elevations(coordinates: list[list[float]], distance_m: float) -> tuple[list[float], str]:
     # Resample at equal distances because range_core expects equally spaced elevations.
     segment_m = []
     for a, b in zip(coordinates, coordinates[1:]):
@@ -534,40 +555,57 @@ async def _fetch_elevations(coordinates: list[list[float]], distance_m: float) -
     if len(selected) > 20000:
         raise HTTPException(422, "Route is too long to build an elevation profile")
 
-    cache_key = ("elevation", ELEVATION_URL,
+    cache_key = ("elevation", ELEVATION_URL, ELEVATION_FALLBACK_URL,
                  tuple((round(lon, 6), round(lat, 6)) for lon, lat in selected))
     cached = UPSTREAM_CACHE.get(cache_key, ELEVATION_CACHE_TTL_SECONDS)
     if cached is not None:
         return cached
 
     elevations: list[float] = []
+    elevation_source = "Open-Meteo (Copernicus GLO-90)"
     try:
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
             for start in range(0, len(selected), ELEVATION_BATCH_SIZE):
                 batch = selected[start:start + ELEVATION_BATCH_SIZE]
-                response = await _upstream_request(client, "POST", ELEVATION_URL, json={
-                    "locations": [{"latitude": lat, "longitude": lon} for lon, lat in batch]
-                })
-                values = response.json().get("results", [])
-                if len(values) != len(batch) or any(item.get("elevation") is None for item in values):
+                response = await _upstream_request(
+                    client,
+                    "GET",
+                    ELEVATION_URL,
+                    params={
+                        "latitude": ",".join(str(lat) for _, lat in batch),
+                        "longitude": ",".join(str(lon) for lon, _ in batch),
+                    },
+                )
+                values = response.json().get("elevation", [])
+                if len(values) != len(batch) or any(value is None for value in values):
                     raise HTTPException(502, "Elevation service returned incomplete data")
-                elevations.extend(float(item["elevation"]) for item in values)
+                elevations.extend(float(value) for value in values)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code != 429:
+            raise HTTPException(502, f"Elevation service returned HTTP {exc.response.status_code}") from exc
+        try:
+            async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
+                elevations = await _fetch_opentopo_elevations(client, selected)
+            elevation_source = "OpenTopoData SRTM 90m (fallback)"
+        except (httpx.HTTPError, AttributeError, KeyError, TypeError, ValueError, HTTPException) as fallback_exc:
+            raise HTTPException(502, "Elevation providers are rate-limited or unavailable; wait briefly and retry") from fallback_exc
     except httpx.TimeoutException as exc:
         raise HTTPException(504, "Elevation service timed out after retries; try again shortly") from exc
     except httpx.HTTPError as exc:
         raise HTTPException(502, f"Elevation service request failed: {exc}") from exc
     except (AttributeError, KeyError, TypeError, ValueError) as exc:
         raise HTTPException(502, "Elevation service returned invalid JSON or elevation values") from exc
-    UPSTREAM_CACHE.set(cache_key, elevations, ELEVATION_CACHE_TTL_SECONDS)
-    return elevations
+    cached_result = (elevations, elevation_source)
+    UPSTREAM_CACHE.set(cache_key, cached_result, ELEVATION_CACHE_TTL_SECONDS)
+    return cached_result
 
 
 @app.post("/route-range")
 async def route_range(request: RouteRangeRequest):
-    """Get a road route from OSRM and its elevation samples from Open-Elevation."""
+    """Get a road route from OSRM and its elevation samples from Open-Meteo."""
     distance_m, coordinates = await _fetch_route(request.start_lon, request.start_lat,
                                                   request.end_lon, request.end_lat)
-    elevations = await _fetch_elevations(coordinates, distance_m)
+    elevations, elevation_source = await _fetch_elevations(coordinates, distance_m)
     step_m = distance_m / (len(elevations) - 1)
     params = _prediction_params(request)
     for key in ("start_lat", "start_lon", "end_lat", "end_lon"):
@@ -576,6 +614,6 @@ async def route_range(request: RouteRangeRequest):
     prediction = _public(core.predict(_models(), params))
     _attach_profile_info(prediction, params)
     prediction["route_source"] = "OSRM / OpenStreetMap road network"
-    prediction["elevation_source"] = "Open-Elevation"
+    prediction["elevation_source"] = elevation_source
     prediction["route_distance_km"] = round(distance_m / 1000, 2)
     return prediction

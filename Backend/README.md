@@ -1,12 +1,13 @@
 # Backend upstream-service behavior
 
-`POST /route-range` calls OSRM for road geometry and Open-Elevation for the elevation profile.
+`POST /route-range` calls OSRM for road geometry and Open-Meteo's Elevation API for the elevation profile. If Open-Meteo responds with HTTP 429, the backend falls back to OpenTopoData's SRTM 90 m data. The returned profile identifies which source was used. Open-Meteo's free endpoint is intended for non-commercial use.
 
 ## Reliability controls
 
 - Successful route responses are cached in memory for 15 minutes by default.
 - Successful elevation profiles are cached in memory for 24 hours by default.
 - Temporary timeouts, network failures, HTTP 429 responses, and upstream 5xx responses are retried twice with a short exponential delay. The delay honors numeric `Retry-After` values up to five seconds.
+- If Open-Meteo still responds with HTTP 429 after retries, elevation is fetched from OpenTopoData in batches of up to 100 points with a one-second pause between batches.
 - If retries are exhausted, timeouts return HTTP 504 and other upstream errors return HTTP 502. A route that the router cannot find returns HTTP 422.
 - Failed or incomplete upstream responses are never cached.
 
@@ -15,7 +16,8 @@
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `OSRM_URL` | `https://router.project-osrm.org` | OSRM base URL |
-| `OPEN_ELEVATION_URL` | `https://api.open-elevation.com/api/v1/lookup` | Open-Elevation lookup URL |
+| `OPEN_METEO_ELEVATION_URL` | `https://api.open-meteo.com/v1/elevation` | Open-Meteo Elevation API URL |
+| `OPENTOPO_ELEVATION_URL` | `https://api.opentopodata.org/v1/srtm90m` | Fallback elevation API URL used after Open-Meteo HTTP 429 |
 | `UPSTREAM_TIMEOUT_SECONDS` | `20` | Per-request upstream timeout |
 | `UPSTREAM_RETRIES` | `2` | Retries after the initial request; set to `0` to disable |
 | `ROUTE_CACHE_TTL_SECONDS` | `900` | Route cache lifetime; set to `0` to disable |

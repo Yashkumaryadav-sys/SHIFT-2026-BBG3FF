@@ -48,5 +48,5 @@ CALCE: A123 dynamic profile files at 0, 10, 25, 40 and 50 C (https://calce.umd.e
 ## What is real and what is assumed
 - Ageing: learned from four NASA 18650 cells at 24 C. Life used = cycles / cycles to 80% capacity. Unseen-cell error is about 2.4 points of battery health.
 - Temperature: from a small CALCE LiFePO4 test (0 to 50 C). Noisy between cells. Heat is capped at 1.0. Below 0 C the 0 C value is used.
-- Hills: grade-force physics (mass x g x sin(slope)). Sample routes are for the demo; real routes need Open-Elevation.
+- Hills: grade-force physics (mass x g x sin(slope)). Sample routes are for the demo; real routes use Open-Meteo / Copernicus GLO-90 elevation data.
 - Flat energy per km comes from pack Wh divided by rated range. No real fleet trip data was used.

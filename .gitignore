@@ -9,6 +9,7 @@ Machine_learning/datasets/mcmaster_tesla/*.zip
 __pycache__/
 *.py[cod]
 .venv/
+.pydeps/
 venv/
 env/
 *.sqlite3
@@ -32,4 +33,5 @@ node_modules/
 dist/
 build/
 .next/
+.vite/
 npm-debug.log*

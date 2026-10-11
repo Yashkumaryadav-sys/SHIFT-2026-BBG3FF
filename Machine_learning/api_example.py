@@ -36,7 +36,7 @@ class RangeRequest(BaseModel):
     trip_km: float = Field(20, ge=0.5, le=200)
     safety_margin: float = Field(0.175, ge=0.05, le=0.30)
     route: Literal["flat", "rolling", "hill"] = "rolling"
-    elevations_m: Optional[List[float]] = Field(None, min_length=2, max_length=20000, description="Optional. Elevation at equal spacing along the route (from Open-Elevation). Leave out to use the sample route")
+    elevations_m: Optional[List[float]] = Field(None, min_length=2, max_length=20000, description="Optional. Elevation at equal spacing along the route (from Open-Meteo / Copernicus GLO-90). Leave out to use the sample route")
     step_m: Optional[float] = Field(None, ge=10, le=2000, description="Spacing of elevations_m in metres")
 
 

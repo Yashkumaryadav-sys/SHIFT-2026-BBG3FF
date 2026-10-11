@@ -19,13 +19,11 @@ If your backend is elsewhere, open **API connection** in the dashboard and chang
 ## Backend features used
 
 - `GET /health` and `GET /vehicle-profiles`
-- `POST /route-range` and `POST /predict-range`
+- `POST /route-range`
 - `POST /battery/status`
-- `POST /calibrate-baseline` and `POST /rides/calibrate`
-- `GET /vehicles/{vehicle_id}/calibration`
 - `POST /re-estimate`
 
-The built-in Xiaomi scooter profile is a public-data proxy, not a reading from the rider's actual scooter. The dashboard labels that limitation and lets riders provide their own calibration.
+The built-in Xiaomi scooter profile is a public-data proxy, not a reading from the rider's actual scooter. This frontend uses that public profile for estimates.
 
 ## Build for static hosting
 
