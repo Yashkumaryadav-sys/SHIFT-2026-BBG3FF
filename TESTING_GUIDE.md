@@ -101,14 +101,14 @@ Current model/data limits: the age proxy is based on NASA 18650 cells; temperatu
 
 ## 6. Route/elevation integration and failure testing
 
-The automated route test mocks OSRM and Open-Meteo. To check real integrations, run one normal route request with internet access and inspect `route_source`, `elevation_source`, route distance, and profile sample count. Then verify:
+The automated route test mocks OSRM and Open-Elevation. To check real integrations, run one normal route request with internet access and inspect `route_source`, `elevation_source`, route distance, and profile sample count. Then verify:
 
 - Repeat the identical request and check that response is still correct (successful route/profile data is cached in process).
 - Temporarily disable internet or point service URLs to an invalid local URL in a disposable development environment; confirm retries stop and API returns 502/504 rather than hanging indefinitely.
 - Try an unroutable/invalid coordinate pair and confirm a clear error.
 - Restart API and repeat; caches are process-local, so a fresh upstream lookup is expected.
 
-Do not stress public OSRM/Open-Meteo services with load tests; use mocks or self-hosted test services for repeated/high-volume checks.
+Do not stress public OSRM/Open-Elevation services with load tests; use mocks or self-hosted test services for repeated/high-volume checks.
 
 ## 7. Build, deployment, and security checks
 
@@ -142,7 +142,7 @@ Security/config checks before any public deployment:
 
 - No real BMS hardware/telemetry connection is verified.
 - Public proxy data and NASA/CALCE models do not establish accuracy for a particular vehicle.
-- Mocked upstream tests do not prove OSRM/Open-Meteo uptime or response quality.
+- Mocked upstream tests do not prove OSRM/Open-Elevation uptime or response quality.
 - Existing backend tests do not cover every error, CORS deployment, authentication integration in the browser, or frontend UI behavior.
 - No load, penetration, accessibility, or real-rider pilot test is currently established by the 11 unit/API tests.
 
